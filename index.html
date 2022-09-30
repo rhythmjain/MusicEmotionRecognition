@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Music Emotion Recognition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+    <link rel="icon" href="https://img.icons8.com/color/48/000000/music-heart--v1.png" type="image/png">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Music Emotion Recognition with Machine Learning</h1>
+      <h2 class="project-tagline"> Members of Group 1: Ananth Kumar, Ben Rochford, Juan Sebastian Eljach, Md Tanvir Rahman, and Rhythm Jain</h2>
+      <a href="https://github.gatech.edu/rjain354/CS4641-MachineLearning-Project" class="btn">View on GitHub</a>
+    </section>
+
+    <section class="main-content">
+      <h3>
+<a id="Introduction" class="anchor" href="#Introduction" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Introduction</h3>
+<p>For nearly 35,000 years, humans have been making and listening to music. From its earliest forms of simple stick-and-stone rhythms to its modern-day complexities with varying instruments and even electronic/synthesized beats, music has long been an enormous part of human cultures and lifestyles. But why  are humans naturally drawn to music? According to many studies, the answer is simple; we find pleasure in music. At its core, music is all about emotions, evoking sentiments and altering our mood in ways that few other external stimuli can achieve [1]. Whether calm and soothing or loud and exciting, music serves as the perfect outlet for us to seek the physiological enjoyment of exploring the vast expanses of our emotional spectrum. </p>
+       
+<h3>
+<a id="problem-definition" class="anchor" href="#problem-definition" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Problem Definition</h3>
+<p> As emotion is the essence of music, the extraction of emotional features from music can be extremely important for applications like music characterization and recommendation. Especially with the explosion of vast and easily accessible digital music libraries over the past decade, there has been increased emphasis on the importance of music information retrieval with regards to automating systems for searching and organizing music. While it is common for music to be sorted based on artist or genre, characterizing songs based on their emotional attributes can paint a much better picture of the qualities and features of a piece. This concept, known as music emotion recognition (MER), includes three key steps:
+    <ol>
+      <li>Defining the area of exploration (specific genres/artists/styles)</li>
+      <li>Extracting audio features and curating groundtruth data collection</li>
+      <li>Building the model to predict emotions</li>
+    </ol>
+ </p>
+<p>Our goal is thus to be able to address the problem of predicting the commonly-perceived emotions of a song through its audio features. For this, we chose DEAM i.e. <a href="https://cvml.unige.ch/databases/DEAM/">The MediaEval Database for Emotional Analysis of Music</a>, which contains over 1800 excerpts of songs from varying genres and styles.   
+   Each song in the database is characterized based on the dimensional model of emotion [2], which is a two-dimensional circumplex model [5] that proposes that all emotional states arise from two independent neurophysiological systems: one related to valence (a pleasure/displeasure continuum) and the other related to arousal (a spectrum of activation to deactivation). Essentially, all emotions can be understood as varying degrees of both valence and arousal.
+</p>
+<p>
+   The averaged dynamic annotations for each song in the dataset are presented on a continuous scale from -1 to 1. Static annotations in the dataset (labeling the entire song), however, are presented on a discrete scale, from 1 to 9. Keeping track of this distinction will be very important for us in the remained of the project.
+    <center>
+       <figure>
+          <img src="RusselCircumplexModel.png" alt="russelCircumplex" width="550px">
+          <figcaption>Figure 1: The two-dimensional circumplex model [6].</figcaption>
+       </figure>
+     </center>
+</p>
+<h3>Data Collection</h3>
+  <h4>Data Pre-Processing</h4>
+  <p>
+  The DEAM dataset consists of 1802 songs, 1744 of which are 45 seconds-long and the remaining 58 of which are longer and of varying lengths. For the sake of uniformity, we decided to cater to the 1744 45-second-long songs. 
+For acoustic analysis, the dataset provides  some of the most referenced features in the literature, which are the fundamental frequency (F0), jitter, shimmer and HNR. The fundamental frequency (F0), measured in Hertz, is defined as the number of times a sound wave produced by the vocal cords repeats during a given time period. Jitter is defined as the parameter of frequency variation from cycle to cycle, and shimmer relates to the amplitude variation of the sound wave. The HNR is an assessment of the ratio between periodic components and non periodic component comprising a segment of voiced speech. 
+Although DEAM provides plenty of features, the most important aspects are the final labels: valence and arousal. The averaged valence/arousal labels per song are presented in the image shown below.
+<center>
+    <figure>
+      <img src="imgs/labels_per_song.png" alt="labels" width="300px">
+      <figcaption>Figure 2a: Labels dataframe for the short (45 sec) songs.</figcaption>
+    </figure>
+</center>
+</p>
+<p>
+  We cleaned the dataset making sure all values of the chosen songs were non zero/non-nan by excluding the longest songs. Well aware with the problem of overfitting on a small dataset (only 1744 datapoints), we set out to augment our data by creating more clips out of each 45-second-long clip. We created new datapoints such that every existing clip was split into 4 child clips. With this, we averaged the feature values for the timestamps within each small clip interval, resulting in a 1744*4 = 6976 data points.
+<center>
+       <figure>
+          <img src="features_dataframe.png" alt="features" width="550px">
+          <figcaption>Figure 2b: Features dataframe for the short (45 sec) songs after data augmentation.</figcaption>
+       </figure>
+    </center>
+</p>
+  <h4>Data Visualizations</h4>
+  The following plot shows the distribution of the both arousal and valence annotations (labels) from DEAM together on a 2-dimensional plane. We can see that the distribution is not a perfect circle with equal number of songs in each quadrant.
+  <center>
+       <figure>
+          <img src="imgs/1802ValArousal.png" alt="1802ValArousal" width="550px">
+          <figcaption>Figure 3: DEAM Dataset Arousal/Valence Coordinate Plane Distribution.</figcaption>
+         
+       </figure>
+    </center>
+  To see the relative number of songs in each quadrant, we plotted a pie chart, which clearly shows that songs in the 1st quadrant are almost 50% of the dataset, and reminaing songs fill the other 50%. The dataset is clearly skewed.
+  <center>
+       <figure>
+          <img src="imgs/pie_quadrant.png" alt="pie_quadrant" width="550px">
+          <figcaption>Figure 4: DEAM Dataset Label Quadrant Pie Chart (illustrating potential skew in data).</figcaption>
+         
+       </figure>
+    </center>
+    
+<h3>
+<a id="methods" class="anchor" href="#methods" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Methods</h3>
+<p>To successfully classify songs based on emotion, it is important to maximize the utility of the provided dataset. This involves preprocessing/visualizations, feature selection, splitting excerpts into smaller segments, and separating the data into a training and testing set. Some of these strategies have already been implemented, as shown above. From here, techniques such as PCA, linear regression, and neural networks will be implemented on the training data, and the resulting model can be verified on test data. Finally, we will compare the results of these different methods, as well as combine these strategies, to arrive at a model solution that is most accurate and effective for solving our problem.
+ </p>
+<h4>Feature Selection</h4>
+    <p>
+      <b>Principal Component Analysis (PCA):</b> Features were selected using Principal Component Analysis (PCA). After normalizing the feature, we ran PCA to show how much variance PCA is able to explain as we increase the number of components, in order to decide how many dimensions to ultimately keep or analyze. After analyzing the results from PCA, we found the top 42 features that retain 90% of the variance in our dataset. With a higher explained variance, we will be able to capture more variability in our dataset, which could potentially lead to better performance when training our model. The visualization shows the cumulative sum of explained variance as we increase the number of components.
+    </p>
+    <center>
+       <figure>
+          <img src="PCA_plot.png" alt="PCA plot" width="550px">
+          <figcaption>Figure 5: Top 42 components with 90% of the variance.</figcaption>
+       </figure>
+    </center>
+    <p>
+      Furthermore, the below images display the the correlation matrix of features in the dataset, both before and after we run PCA. The first image, which shows 7 of the 260 features in the dataset for simplicity, shows that there is a lot of correlation between features off of the main diagonal; in other words, different features are experiencing correlation with one another. However, after PCA is complete, we can see that of the 42 features selected that maximize the explained variance, none of them are strongly (or at all) correlated with each other; all the values off of the main diagonal are essentially 0. For reference, the axes in the second image are labeled as the feature indices/numbers, instead of the more verbose feature names.
+    </p>
+    <center>
+      <figure>
+         <img src="imgs/pre-PCA-correlation.png" alt="pre-PCA correlation matrix" width="550px">
+         <figcaption>Figure 6: Correlation Matrix of Features Pre-PCA.</figcaption>
+      </figure>
+   </center>
+   <center>
+    <figure>
+       <img src="imgs/post-PCA-correlation.png" alt="post-PCA correlation matrix" width="550px">
+       <figcaption>Figure 7: Correlation Matrix of Features Post-PCA.</figcaption>
+    </figure>
+ </center>
+    <p>
+      <b>Lasso Regression:</b> In addition to the PCA, we also did Lasso regression on the data. Our current total feature number is 260, and the total sample number, including the training and the testing dataset, is 1744 * 4 = 6976. Here, the initial goal is to reduce the number of features to predict valence and arousal. We initialize the lasso model by passing 0.1 as our alpha value, which is the constant that multiplies the L1 term. We also set our maximum number of iterations to be 10,000. We ran the lasso model for arousal and valence separately to reduce the number of features, by calculating the respective co-efficients of the features.
+    </p>
+    <center>
+       <figure>
+          <img src="ArousalLasso.png" alt="LassoArousal" width="550px">
+          <figcaption>Figure 7: Top 5 features for Arousal Lasso model.</figcaption>
+       </figure>
+    </center>
+    <center>
+       <figure>
+          <img src="valenceLasso.png" alt="LassoValence" width="550px">
+          <figcaption>Figure 8: Top 5 features for Valence Lasso model.</figcaption>
+       </figure>
+    </center>
+  <h4>Model Implementation Details</h4>
+    <p>
+      <b>Linear Regression:</b>
+      After running the PCA and Lasso Regression on our dataset we decided to start the model training process implementing a Multi Linear Regression, since we are trying to predict two continuous values: Valence and Arousal. These two values are the X and Y axis in the two-dimensional
+      circumplex model. We trained two different models and tried to predict these two different features separately.</p>
+
+    <p>
+      For the first model, we used the Top 5 Features given by our Lasso Analysis.
+      <center>
+        <img src="lasso_top5_lr.png" alt="LassoValenceRegression" width="450px">
+        <figcaption>Figure 9: Linear Regression Model trained on the top 5 features from the Lasso model for Valence.</figcaption>
+      </center>
+    </p>
+
+    <p>
+      With the following results:
+      <ul>
+        <li>Mean Absolute Error: 0.8307740135927372</li>
+        <li>Mean Squared Error: 1.0792617790702905</li>
+        <li>Root Mean Squared Error: 1.038875247115981</li>
+      </ul>
+
+    </p>
+
+    <p>
+      As mentioned above, we also trained the model to predict the Arousal label. 
+      
+      <center>
+        <img src="arousal_top5_lr.png" alt="LassoValenceRegression" width="450px">
+        <figcaption>Figure 10: Linear Regression Model trained on the top 5 features from the Lasso model for Arousal.</figcaption>
+      </center>
+
+      <ul>
+        <li>Mean Absolute Error: 0.9124138603622084</li>
+        <li>Mean Squared Error: 1.2668431276199499</li>
+        <li>Root Mean Squared Error: 1.1255412598478787</li>
+      </ul>
+    </p>
+    <p>Clearly, the model didn't perform well, so we decided to increase the number of features used to train the model by using the Top 42 features retrieved by the PCA Analysis. We obtained the following:
+      
+      
+      <center>
+        <img src="pca_valence.png" alt="PCAValenceLinearReg" width="450px">
+        <figcaption>Figure 11: Linear Regression Model trained on the top 42 features from the PCA Analysis - Valence</figcaption>
+      </center>
+
+
+      <p>
+        <ul>
+          <li>Mean Absolute Error: 0.7187519192694706</li>
+          <li>Mean Squared Error: 0.8217775059568725</li>
+          <li>Root Mean Squared Error: 0.906519445989369</li>
+        </ul>
+      </p>
+
+
+      <center>
+        <img src="arousaltop42.png" alt="PCAValenceLinearReg" width="450px">
+        <figcaption>Figure 12: Linear Regression Model trained on the top 42 features from the PCA Analysis - Arousal</figcaption>
+      </center>
+
+      <p>
+        <ul>
+          <li>Mean Absolute Error: 0.8047834653698451</li>
+          <li>Mean Squared Error: 1.0622158597715508</li>
+          <li>Root Mean Squared Error: 1.030638568932655</li>
+        </ul>
+      </p>
+
+
+    </p>
+
+    <p>By training our Multiple Linear Regression model on the Top 42 features from the PCA Analysis we saw an improvement of around 14% (in terms of Mean Absolute Error) in the Valence prediction and an improvement of around 12% 
+      in the Arousal prediction, when compared to the model trained on Top 5 features from the Lasso analysis.</p>
+    <p>
+      <b>Neural Network: </b>In addition to our linear regression classification model, we implemented a few neural network driven classifiers using Keras. For the initial models, we elected to use a simple densely-connected model trained on the reduced features from PCA and Lasso, with a ReLU activation at the input and hyperbolic tangent activations to the remaining 2 hidden layers. The output layer is a 2-neuron densely connected layer (one  for valence and one for arousal). 
+      Figure 13 shows the architecture of the model. 
+      <center>
+       <figure>
+          <img src="nnModelArch.png" alt="nnModelArch" width="550px">
+          <figcaption>Figure 13: Architecture of the Neural network classifier.</figcaption>
+       </figure>
+    </center>
+      
+      Using a grid search over epoch count and training batch size, we found the optimal hyperparameters for the initial model (10 epochs, 5 batch size). When trained, we found the neural network to be more effective than our linear regression model in terms of overall error in predictions. Additionally, the input and output sizing allowed us to fit our classification problem use case a bit more succinctly. However, we did note that the range of values predicted by the model are a bit 'cautious,' constraining mostly to the diagonal as seen in the graphic.
+    </p>
+
+    <p>
+      <i>Top 42 PCA - Components - Valence/Arousal Prediction via NN:</i>
+      <ul>
+        <li>Mean Absolute Error: 0.7368322488435022</li>
+        <li>Mean Squared Error: 0.9013880567047041</li>
+        <li>Root Mean Squared Error: 0.9494145863134315</li>
+      </ul>
+    </p>
+
+    <center>
+       <figure>
+          <img src="nnModelResult.png" alt="nnModel" width="550px">
+          <figcaption>Figure 14: Results of neural network classifier trained on lasso-regressed features. Blue is testing data, orange is model predictions.</figcaption>
+       </figure>
+    </center>
+
+    <p>
+      In an effort to improve upon the neural network model, we developed a new neural net that trained using the entire cleaned set of 260 features instead of our PCA or Lasso subsets. To assure the model was capable of handling the larger input, we changed the architecture to a layer of 250, into a layer of 200, into an output of 2, all densely-connected. We discovered that the relu activation function was the most suited to this new architecture. 
+      Figure 15 shows the architecture of this model. 
+      <center>
+       <figure>
+          <img src="nnModel2Arch.png" alt="nnModelArch" width="550px">
+          <figcaption>Figure 15: Architecture of the improved Neural network classifier.</figcaption>
+       </figure>
+    </center>
+      Initially, the performance was worse than that of the PCA and Lasso neural network models, but after normalizing the input and a grid search over possible epochs and parameters, this new neural net proved more capable than its predecessors. It is less committed to guessing the means of the training data that lay along the diagonal than the feature-reduced models, and is thus more effective.
+    </p>
+
+    <p>
+      <i>All 260 features - Valence/Arousal Prediction via NN:</i>
+      <ul>
+        <li>Mean Absolute Error: 0.7313165175504881</li>
+        <li>Mean Squared Error: 0.8758634497688883</li>
+        <li>Root Mean Squared Error: 0.9358757662045152</li>
+      </ul>
+    </p>
+
+    <center>
+       <figure>
+          <img src="nnAllFeatModelResult.png" alt="nnModel" width="550px">
+          <figcaption>Figure 16: Results of neural network classifier trained on full feature set. Blue is testing data, orange is model predictions.</figcaption>
+       </figure>
+    </center>
+
+<h3>
+<a id="potential-results" class="anchor" href="#potential-results" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Concluding Discussion</h3>
+<p> Although MER suffers from some challenges (such as emotional granularity) [4], the results of this project have been fairly robust. Comparing the results of the different models we attempted, specifically with the use of Mean Squared Error (MSE) as a metric, we see the following:
+</p>
+<center>
+  <figure>
+     <img src="imgs/Model_Comparison.png" alt="model_comparison" width="600px">
+     <figcaption>Figure 17: Comparing MSE Values for Each of the Four Proposed Models.</figcaption>
+  </figure>
+</center>
+<p> For the first two models, which used linear regression along with a means of feature reduction, the average value of MSE for valence and arousal was used. The linear regression model with 42 selected features from PCA proved to be relatively capable, but it can only predict valence and arousal one at a time. The neural networks, on the other hand, can combine these two predictions into one network with two outputs. This explains the lower error rates of the neural networks. Finally, the neural net WITHOUT feature reduction boasts the best error rates. Our hypothesis for this is that in using feature reduction, our model ended up overfitting a bit to the smaller number of features. Thus, expanding the network to train on the entire collection of 260 features proved effective in further boosting our model accuracy. </p>
+  <p>Thus, we were able to successfully achieve our goal to create a machine learning model that maps audio features of music to corresponding values of arousal and valence, which can in turn be used to label the predominant emotional features of a musical piece.</p>
+<h3>
+<a id="references" class="anchor" href="#references" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>References</h3>
+    <p>
+      <ol>
+        <li>Eerola, T., & Vuoskoski, J. K. (2011). A comparison of the discrete and dimensional models of emotion in music. Psychology of Music, 39(1), 18-49.</li>
+        <li>Feng, Y., Zhuang, Y., Pan, Y.: Popular music retrieval by detecting mood. In: Proceedings of the 26th Annual International ACM SIGIR Conference on Research and Development in Information Retrieval, pp. 375–376. ACM, New York (2003). </li>
+        <li>Tellegen, A., Watson, D., & Clark, L. A. (1999). On the dimensional and hierarchical structure of affect. Psychological science, 10(4), 297-303. </li>
+        <li>Yang, X., Dong, Y., & Li, J. (2018). Review of data features-based music emotion recognition methods. Multimedia systems, 24(4), 365-389. </li>
+        <li>Russell, J. A. (1980). A circumplex model of affect. Journal of personality and social psychology, 39(6), 1161. </li>
+        <li>Liu, Z., Xu, A., Guo, Y., Mahmud, J. U., Liu, H., & Akkiraju, R. (2018, April). Seemo: A computational approach to see emotions. In Proceedings of the 2018 CHI Conference on Human Factors in Computing Systems (pp. 1-12). </li>
+       
+      </ol>
+    
+    </p>
+<h3>
+<a id="video" class="anchor" href="#video" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Proposal Video Presentation</h3>
+<p><center> <iframe width="560" height="315" src="https://www.youtube.com/embed/EXIQwB-M3h8" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
+  </iframe></center>
+    </p>
+<h3>
+  <a id="video_final" class="anchor" href="#video_final" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Final Project Video Presentation</h3>
+  <p><center> <iframe width="560" height="315" src="https://www.youtube.com/embed/FTh4071GfI4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
+    </iframe></center>
+      </p>
+<h3>
+<a id="gantt" class="anchor" href="#gantt" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Gantt Chart & Timeline</h3>
+<p>
+    <center><figure>
+          <img src="ganttChartProposal.png" alt="ganttChartProposal">
+          <figcaption>Figure 15: Group 1 Gantt Chart</figcaption>
+       </figure>   
+       </center>
+    
+  For a more detailed view, please click <a href="ganttChartProposal.html">here</a>.
+</p>
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.gatech.edu/rjain354/CS4641-MachineLearning-Project">Cs4641-machinelearning-project</a> is maintained by <a href="https://github.gatech.edu/rjain354">rjain354</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
